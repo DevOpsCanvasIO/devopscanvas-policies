@@ -1,0 +1,29 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+  annotations:
+    policies.kyverno.io/title: Require Labels
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/description: >-
+      This policy requires that all resources have the required labels.
+spec:
+  validationFailureAction: enforce
+  background: true
+  rules:
+  - name: check-labels
+    match:
+      resources:
+        kinds:
+        - Deployment
+        - Service
+        - ConfigMap
+        - Secret
+    validate:
+      message: "Required labels missing"
+      pattern:
+        metadata:
+          labels:
+            app.kubernetes.io/name: "?*"
+            app.kubernetes.io/version: "?*"
+            app.kubernetes.io/component: "?*"

@@ -1,22 +1,50 @@
 apiVersion: kyverno.io/v2beta1
 kind: ClusterPolicy
-metadata: { name: verify-keyless }
+metadata:
+  name: verify-keyless-signatures
+  annotations:
+    policies.kyverno.io/title: Verify Keyless Signatures
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      This policy verifies that all container images from the organization's
+      registry are signed using keyless signing with GitHub OIDC.
 spec:
   validationFailureAction: enforce
   background: false
   rules:
-    - name: require-cosign-keyless
-      match: { resources: { kinds: [Pod, Deployment] } }
+    - name: verify-ghcr-images
+      match:
+        resources:
+          kinds:
+          - Pod
+          - Deployment
+          - StatefulSet
+          - DaemonSet
+          - Job
+          - CronJob
       verifyImages:
-        - imageReferences: ["ghcr.io/ORG/*:*"]
-          attestations:
-            - predicateType: https://slsa.dev/provenance/v1
-              conditions:
-                - all:
-                    - key: "predicate.builder.id"
-                      operator: Equals
-                      value: "https://github.com/ORGANIZATION/REPOSITORY/.github/workflows/deploy.yml@refs/heads/main"
-          keyless:
-            identities:
-              - issuer: "https://token.actions.githubusercontent.com"
-                subject: "repo:ORG/REPO:ref:refs/heads/main"
+      - imageReferences:
+        - "ghcr.io/DevOpsCanvasIO/*:*"
+        keyless:
+          roots: |
+            -----BEGIN CERTIFICATE-----
+            MIICGjCCAaGgAwIBAgIUALnViVfnU0brJasmRkHrn/UnfaQwCgYIKoZIzj0EAwMw
+            KjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTAeFw0y
+            MjA0MTMyMDA2MTVaFw0zMTEwMDUxMzU2NThaMCoxFTATBgNVBAoTDHNpZ3N0b3Jl
+            LmRldjERMA8GA1UEAxMIc2lnc3RvcmUwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAAT7
+            XeFT4rb3PQGwS4IajtLk3/OlnpgangaBclYpsYBr5i+4ynB07ceb3LP0OIOZdxex
+            X69c5iVuyJRQ+Hz05yi+UF3uBWAlHpiS5sh0+H2GHE7SXrk1EC5m1Tr19L9gg92j
+            YzBhMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRY
+            wB5fkUWlZql6zJChkyLQKsXF+jAfBgNVHSMEGDAWgBRYwB5fkUWlZql6zJChkyLQ
+            KsXF+jAKBggqhkjOPQQDAwNnADBkAjEA39CWW7W6EK/cH4haYfxncDyxVjjDkbEs
+            sSJC9C40I4JiPcK6MK0hD0AxVDdnTGKdAjBSSR5pCqhTwKoE+wHDdXiaunHiSdOw
+            pvm9iyYmLEAOdDOyPsI4qiWaAhKKDFAGHrk=
+            -----END CERTIFICATE-----
+          identities:
+          - issuer: "https://token.actions.githubusercontent.com"
+            subject: "repo:DevOpsCanvasIO/devopscanvas-control-plane:ref:refs/heads/main"
+          - issuer: "https://token.actions.githubusercontent.com"
+            subject: "repo:DevOpsCanvasIO/devopscanvas-portal:ref:refs/heads/main"
+          - issuer: "https://token.actions.githubusercontent.com"
+            subject: "repo:DevOpsCanvasIO/*:ref:refs/heads/main"
